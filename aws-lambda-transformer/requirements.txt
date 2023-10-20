@@ -1,0 +1,7 @@
+# https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp311-cp311-linux_x86_64.whl
+# torch-2.1.0-cp311-cp311-manylinux2014_aarch64.whl
+# https://download.pytorch.org/whl/cpu/torch-2.1.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl#sha256=8132efb782cd181cc2dcca5e58effbe4217cdb2581206ac71466d535bf778867
+# transformers==4.33.1
+sentence-transformers==2.2.2
+pydgraph==23.0.1
+pybars3

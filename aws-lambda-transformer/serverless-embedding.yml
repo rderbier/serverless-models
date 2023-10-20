@@ -1,0 +1,41 @@
+service: template-transformer
+	
+plugins:
+  - serverless-plugin-log-retention
+
+provider:
+  name: aws # provider
+  region: us-east-1 # aws region
+  memorySize: 5120 # optional, in MB, default is 1024
+  timeout: 30 # optional, in seconds, default is 6
+  architecture: x86_64
+  ecr:
+    # In this section you can define images that will be built locally and uploaded to ECR
+    images:
+      embeddingimage:
+        path: ./
+        platform: linux/amd64
+  environment:
+    TRANSFORMERS_CACHE: /var/cache
+  apiGateway:
+    apiKeys:
+      - template-transformer-apikey
+
+functions:
+  sentence-encoding:
+    image: # 670738750911.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda:latest
+      name: embeddingimage
+      command:
+        - handler.handler
+      entryPoint:
+        - '/lambda-entrypoint.sh'
+
+    logRetentionInDays: 1
+    events:
+      - http:
+          path: transformer # http path
+          method: post # http method
+          private: true
+
+
+ 
