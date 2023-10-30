@@ -44,24 +44,32 @@ Following https://www.philschmid.de/serverless-bert-with-huggingface-aws-lambda-
 have aws cli installed and a profile [dgraph] in ~/.aws/credential with aws_access_key_id and aws_secret_access_key.
 
 ### Create ECR repository
-aws_region=us-east-1
-aws_account_id=<account_id>
+export aws_region=us-east-1
+xport aws_account_id=<account_id>
 
 > aws ecr create-repository --repository-name embedding-lambda --region $aws_region --profile dgraph
+> aws ecr create-repository --repository-name embedding-lambda-amd64 --region $aws_region --profile marketing
 ### build and tag the docker image
 > docker build -t python-lambda .
+> docker build  --platform linux/amd64  --no-cache -f amd64-dockerfile -t python-aws-amd64 .
+> docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t python-aws-arm64 .
 use ECR repositoryUri to tag the image
 > docker tag python-lambda $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
-
+> docker tag python-aws-amd64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64
+> docker tag python-aws-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-arm64
 ### push the image to ECR
 > aws ecr get-login-password --region $aws_region --profile dgraph\
 | docker login \
     --username AWS \
     --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
 Login Succeeded
+> aws ecr get-login-password --region $aws_region --profile marketing\
+| docker login \
+    --username AWS \
+    --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64
 
 > docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
-
+> docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64 
 ### deploy the serverless function
 set the image reference in serverless.yml config.
 
@@ -120,9 +128,11 @@ Note that the payload has a “body” element as a string.
 
 Docker tests
 1 - on mac create but with amd64 target - working but slow.
-docker build  --platform linux/amd64  -t python-aws-amd64 .
+> cd amd64
+> docker build -f amd64-dockerfile --platform linux/amd64  -t python-aws-amd64 .
 
 requirements.txt
+    urllib3==1.26.*
     transformers==4.33.1
     sentence-transformers==2.2.2
     pydgraph==23.0.1
@@ -143,11 +153,11 @@ with requirements
     sentence-transformers==2.2.2
     pydgraph==23.0.1
     pybars3
-
+-> not working
 
     
-WORKING deployed
+What is WORKING deployed?
+
     dev-python-embedding
-    lambda 
-    python-embedding-dev-sentence-encoding
+    lambda  named :python-embedding-dev-sentence-encoding
     Created using the ECR image.
