@@ -58,7 +58,7 @@ use ECR repositoryUri to tag the image
 > docker tag python-aws-amd64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64
 > docker tag python-aws-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-arm64
 ### push the image to ECR
-> aws ecr get-login-password --region $aws_region --profile dgraph\
+> aws ecr get-login-password --region $aws_region \
 | docker login \
     --username AWS \
     --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
