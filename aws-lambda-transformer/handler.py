@@ -21,5 +21,13 @@ def handler(event, context):
     keylist = list(body.keys())
     resp = {keylist[i]:json.dumps(embeddings[i].tolist()) for i in range(len(embeddings))}
 
-    return {"statusCode": 200, "body": json.dumps(resp)}
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Headers" : "Content-Type,X-Api-Key",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
+        }, 
+        "body": json.dumps(resp)
+        }
 
