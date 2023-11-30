@@ -1,17 +1,13 @@
-<!--
-title: 'AWS Simple HTTP Endpoint example in Python'
-description: 'This template demonstrates how to make a simple HTTP API with Python running on AWS Lambda and API Gateway using the Serverless'
--->
 
-# sentence transformer exposed as a serverless AWS Lambda function
+# classifier  exposed as a serverless AWS Lambda function
 
-This repo provides the artefacts and steps to expose an AWS Lambda function providing vector embedding for sentences based on huggingface model.
+
 
 
 ## Design
-We deploy a Lambda function using a custom docker image build from public.ecr.aws/lambda/python:3.8.
+We deploy a Lambda function using a custom docker image build from public.ecr.aws/lambda/python:3.9.
 
-The docker image contains python library, sentence transformer pre-trained model and the lambda function handler.
+The docker image contains python library, sentence transformer fine-tuned model and the lambda function handler.
 
 **Service signature**
 The service accepts a map of IDs and sentences
@@ -23,16 +19,21 @@ The service accepts a map of IDs and sentences
 ```
 and returns a map of IDs and vectors.
 ```json
-{
-    "0x01":"[-0.010852468200027943, -0.016728922724723816, ...]",
-    ...
+{ 
+    "id1": {
+        "label": "NOT-SPAM", 
+        "score": 0.9827121496200562, 
+        "probabilities": {
+            "NOT-SPAM": 0.9827121496200562, 
+            "SPAM": 0.017287809401750565}
+        }, 
+    "id2": ...
 }
+>
 ```
 
-We opted for a map vs an array of vectors to support parallelism if needed.
-By using IDs, we don't have to provide the vectors in the same order as the sentences.
 
-Client should use the IDs to associate the vectors with the right objects.
+Client should use the IDs to associate the result with the right objects UIDs
 
 
 ## Usage
@@ -47,29 +48,21 @@ have aws cli installed and a profile [dgraph] in ~/.aws/credential with aws_acce
 export aws_region=us-east-1
 export aws_account_id=<account_id>
 
-> aws ecr create-repository --repository-name embedding-lambda --region $aws_region --profile dgraph
-> aws ecr create-repository --repository-name embedding-lambda-amd64 --region $aws_region --profile marketing
+> aws ecr create-repository --repository-name classifier-lambda-arm64 --region $aws_region --profile sandbox
 ### build and tag the docker image
-> docker build -t python-lambda .
-> docker build  --platform linux/amd64  --no-cache -f amd64-dockerfile -t python-aws-amd64 .
-> docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t python-aws-arm64 .
+
+> docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t aws-classifier-arm64 .
 use ECR repositoryUri to tag the image
-> docker tag python-lambda $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
-> docker tag python-aws-amd64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64
-> docker tag python-aws-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-arm64
+
+> docker tag aws-classifier-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/classifier-lambda-arm64
 ### push the image to ECR
 > aws ecr get-login-password --region $aws_region \
 | docker login \
     --username AWS \
-    --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
+    --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/classifier-lambda-arm64
 Login Succeeded
-> aws ecr get-login-password --region $aws_region --profile marketing\
-| docker login \
-    --username AWS \
-    --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64
 
-> docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
-> docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64 
+> docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/classifier-lambda-arm64
 ### deploy the serverless function
 set the image reference in serverless.yml config.
 
@@ -99,18 +92,15 @@ curl --request POST \
 
 ### Local development
 
-> docker build -t embedding-lambda .
 
-Build for a specific platform
 
-> docker build --platform linux/amd64 -t embedding-lambda .
-> docker build --platform linux/arm64 -t embedding-lambda .
 
-docker run -d --name embedding -p 8180:8080  -v ./:/var/task/   python-lambda
+
+docker run -d --name classifier -p 8180:8080  -v ./:/var/task/   aws-classifier-arm64
 
 Runing locally a specific handler:
 
-> docker run -d --name embedding -p 8180:8080  -v ./handler.py:/var/task/handler.py   python-lambda "handler.embedding"
+> docker run -d --name classifier -p 8180:8080  -v ./handler.py:/var/task/handler.py   classifier-lambda-arm64 "handler.embedding"
 
 ```
 curl --request POST \
