@@ -1,3 +1,4 @@
 urllib3==1.26.*
 https://download.pytorch.org/whl/torch-1.13.1-cp39-cp39-manylinux2014_aarch64.whl#sha256=2c3581a3fd81eb1f0f22997cddffea569fea53bafa372b2c0471db373b26aafc
 transformers==4.26
+boto3==1.28
