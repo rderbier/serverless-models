@@ -1,3 +1,6 @@
+#
+# upload-data.py
+#
 import pandas as pd
 import os
 import s3fs
@@ -40,8 +43,8 @@ def tokenize_function(examples):
     return tokenizer(examples["Message"], padding="max_length", truncation=True,return_tensors="pt")
 dataset_train = Dataset.from_pandas(train)
 dataset_eval = Dataset.from_pandas(eval)
-tokenized_dataset_train = dataset_train.map(tokenize_function, batched=True)
-tokenized_dataset_eval = dataset_eval.map(tokenize_function, batched=True)
+tokenized_dataset_train = dataset_train.map(tokenize_function, batched=True, remove_columns=["Message"])
+tokenized_dataset_eval = dataset_eval.map(tokenize_function, batched=True, remove_columns=["Message"])
 
 tokenized_dataset_train.save_to_disk(f"s3://{AWS_S3_BUCKET}/train")
 
