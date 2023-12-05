@@ -6,6 +6,7 @@ import logging
 import sys
 import argparse
 import os
+import shutil
 import torch
 
 if __name__ == "__main__":
@@ -37,7 +38,10 @@ if __name__ == "__main__":
         handlers=[logging.StreamHandler(sys.stdout)],
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-
+    # copy inteference.py
+    dest_fpath = os.path.dirname(args.model_dir+"/code")
+    os.makedirs(os.path.dirname(args.model_dir+"/code"), exist_ok=True)
+    shutil.copy("./inference.py", dest_fpath)
     # load datasets
     train_dataset = load_from_disk(args.training_dir)
     test_dataset = load_from_disk(args.test_dir)
@@ -64,10 +68,10 @@ if __name__ == "__main__":
     #for i, label in enumerate(labels):
     #    label2id[label] = str(i)
     #    id2label[str(i)] = label
-    # id2label = {
-    #    0: "NOT SPAM",
-    #    1: "SPAM"
-    # }
+   #id2label = {
+   #     0: "NOT SPAM",
+   #     1: "SPAM"
+   #  }
     model = AutoModelForSequenceClassification.from_pretrained(args.model_name,num_labels=2)
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
