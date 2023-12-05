@@ -1,8 +1,9 @@
 FROM public.ecr.aws/lambda/python:3.8
-COPY ./requirements.txt ${LAMBDA_TASK_ROOT}
+
+COPY ./requirements.txt ${LAMBDA_TASK_ROOT}/requirements.txt
 
 # install dependencies
-RUN pip3 install --user -r ${LAMBDA_TASK_ROOT}/requirements.txt
+RUN python3.8 -m pip  install -r ${LAMBDA_TASK_ROOT}/requirements.txt
 # Copy function code and models into our /var/task
 COPY ./model ${LAMBDA_TASK_ROOT}/model
 COPY ./*.py ${LAMBDA_TASK_ROOT}
