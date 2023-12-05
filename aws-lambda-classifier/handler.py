@@ -2,15 +2,28 @@ import json
 import os
 from transformers import AutoModelForSequenceClassification,AutoTokenizer
 import torch
-os.environ['TRANSFORMERS_CACHE'] = '/tmp'
+import boto3
+import tarfile
 
+os.environ['TRANSFORMERS_CACHE'] = '/tmp'
 
 # change CACHE else we get following error at runtime in AWS Lambda:
 # There was a problem when trying to write in your cache folder (/home/sbx_user1051/.cache/huggingface/hub).
 
 model_dir = '/var/task/model'
+model_local = model_dir+'/model.tar.gz'
+BUCKET_NAME = os.environ["S3_BUCKET_NAME"]
+MODEL_PATH = os.environ["S3_MODEL_PATH"]
 model = AutoModelForSequenceClassification.from_pretrained(model_dir)
 tokenizer = AutoTokenizer.from_pretrained(model_dir)
+def downloadmodel():
+    s3_resource = boto3.resource('s3')
+    bucket = s3_resource.Bucket(BUCKET_NAME) 
+    bucket.download_file(MODEL_PATH, model_local) # save to same path
+    tar = tarfile.open(model_local, "r:gz")
+    tar.extractall(model_dir)
+    tar.close()
+    os.remove(model_local)
 
 def handler(event, context):
     # source = event.get('source')
