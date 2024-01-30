@@ -40,6 +40,17 @@ Some steps are still manual in this version but can be automated.
 
 
 Following https://www.philschmid.de/serverless-bert-with-huggingface-aws-lambda-docker
+
+### Downloads models
+use a python environment (could use pyenv) with
+python 3.8
+transformers==4.33.1
+sentence-transformers==2.2.2
+pytorch==1.13
+run the script ./function/getmodels.py
+
+verify that the models are created in model folder and are in the format of pytorch_model.bin
+
 ### Set your AWS CLI 
 have aws cli installed and a profile [dgraph] in ~/.aws/credential with aws_access_key_id and aws_secret_access_key.
 
