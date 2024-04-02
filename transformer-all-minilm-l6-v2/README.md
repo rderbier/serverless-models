@@ -21,11 +21,24 @@ The service accepts a map of IDs and sentences
     "0x02":"other sentence
 }
 ```
+or K-serve like signature
+```json
+{
+    "instances":["some text","other sentence"]
+}
+```
 and returns a map of IDs and vectors.
 ```json
 {
     "0x01":"[-0.010852468200027943, -0.016728922724723816, ...]",
     ...
+}
+```
+of predictions if the input is in K-serve like signature
+```json
+{
+    "predictions":[[-0.010852468200027943, -0.016728922724723816, ...]],
+    
 }
 ```
 
@@ -42,51 +55,60 @@ Some steps are still manual in this version but can be automated.
 Following https://www.philschmid.de/serverless-bert-with-huggingface-aws-lambda-docker
 
 ### Downloads models
-use a python environment (could use pyenv) with
+use a python environment with
 python 3.8
 transformers==4.33.1
 sentence-transformers==2.2.2
 pytorch==1.13
 run the script ./function/getmodels.py
 
+I used pyenv
+> source ~/.bash_profile
+> pyenv activate models38
+> python ./scripts/getmodels.py
+
+
 verify that the models are created in model folder and are in the format of pytorch_model.bin
 
 ### Set your AWS CLI 
-have aws cli installed and a profile [dgraph] in ~/.aws/credential with aws_access_key_id and aws_secret_access_key.
+have aws cli installed.
+Use secrets from AWS or use a profile in ~/.aws/config 
 
 ### Create ECR repository
+```
 export aws_region=us-east-1
 export aws_account_id=<account_id>
 
-> aws ecr create-repository --repository-name embedding-lambda --region $aws_region --profile dgraph
-> aws ecr create-repository --repository-name embedding-lambda-amd64 --region $aws_region --profile marketing
+export MODEL_NAME="all-minilm-l6-v2"
+
+aws sso login --profile sandbox
+
+aws ecr create-repository --repository-name embedding-${MODEL_NAME} --region $aws_region --profile sandbox
+```
 ### build and tag the docker image
+```
+docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t ${MODEL_NAME}-arm64 .
 
-> docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t all-minilm-l6-v2-arm64 .
-
-
-use ECR repositoryUri to tag the image
-> docker tag all-minilm-l6-v2-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-arm64
+docker tag ${MODEL_NAME}-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-${MODEL_NAME}
+```
 
 ### push the image to ECR
-> aws ecr get-login-password --region $aws_region \
+```
+aws ecr get-login-password --region $aws_region --profile sandbox \
 | docker login \
     --username AWS \
-    --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
+    --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-all-${MODEL_NAME}
 Login Succeeded
-> aws ecr get-login-password --region $aws_region --profile marketing\
-| docker login \
-    --username AWS \
-    --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64
 
-> docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
-> docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64 
+docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-${MODEL_NAME}
+```
+
 ### deploy the serverless function
 set the image reference in serverless.yml config.
 
 Deploy to AWS
 ```
-$ serverless deploy --aws-profile dgraph
+$ serverless deploy --aws-profile sandbox
 ```
 
 If we build an arm64 docker image (on Mac without forcing the platform), then the lambda must be configured with
@@ -112,11 +134,11 @@ curl --request POST \
 
 
 
-docker run -d --name embedding -p 8180:8080  -v ./:/var/task/   all-minilm-l6-v2-arm64
+docker run -d --name all-mpnet-base-v2-arm64 -p 8180:8080  -v ./:/var/task/   all-mpnet-base-v2-arm64
 
 Runing locally a specific handler:
 
-> docker run -d --name embedding -p 8180:8080  -v ./handler.py:/var/task/handler.py   python-lambda "handler.embedding"
+> docker run -d --name all-mpnet-base-v2-arm64 -p 8180:8080  -v ./handler.py:/var/task/handler.py   all-mpnet-base-v2-arm64 "handler.embedding"
 
 ```
 curl --request POST \

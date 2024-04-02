@@ -32,7 +32,7 @@ I0216 08:21:45.401346   11870 zero.go:658] Connected: id:1 addr:"localhost:7080"
 I0216 08:21:46.279793   11870 pool.go:332] CONN: Re-established connection with localhost:7080."""
 
 tokenizer = AutoTokenizer.from_pretrained("Falconsai/text_summarization")
-model = T5ForConditionalGeneration.from_pretrained("Falconsai/text_summarization")
+model = T5ForConditionalGeneration.from_pretrained(modelPath)
 
 # model.save_pretrained(modelPath)
 

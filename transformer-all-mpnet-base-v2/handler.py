@@ -15,33 +15,11 @@ def handler(event, context):
     #    return {"statusCode": 200, "body": "Lambda is warm!"}
     
     body = json.loads(event['body'])
-    replyKserve = False
-    if isinstance(body, dict):
-        if 'instances' in body:
-            print("body contains 'instances'")
-            replyKserve = True
-            sentences = body['instances']
-        else:
-            print("body is a map of uids and sentences")
-            replyKserve = False
-            sentences = [body[key] for key in body]
-    else:
-        # return unprocessable entity
-        return {
-            "statusCode": 422,
-            "headers": {
-                "Access-Control-Allow-Headers" : "Content-Type,X-Api-Key",
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "OPTIONS,POST,GET"
-            }
-        }
+    sentences = [body[key] for key in body]
     
     embeddings = model.encode(sentences)
-    if replyKserve == False:
-        keylist = list(body.keys())
-        resp = {keylist[i]:json.dumps(embeddings[i].tolist()) for i in range(len(embeddings))}
-    else:
-        resp = { "predictions": embeddings.tolist()}
+    keylist = list(body.keys())
+    resp = {keylist[i]:json.dumps(embeddings[i].tolist()) for i in range(len(embeddings))}
 
     return {
         "statusCode": 200,

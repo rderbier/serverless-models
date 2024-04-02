@@ -52,41 +52,33 @@ run the script ./function/getmodels.py
 verify that the models are created in model folder and are in the format of pytorch_model.bin
 
 ### Set your AWS CLI 
-have aws cli installed and a profile [dgraph] in ~/.aws/credential with aws_access_key_id and aws_secret_access_key.
+have aws cli installed.
+Use secrets from AWS or use a profile in ~/.aws/config 
 
 ### Create ECR repository
 export aws_region=us-east-1
 export aws_account_id=<account_id>
 
-> aws ecr create-repository --repository-name embedding-lambda --region $aws_region --profile dgraph
-> aws ecr create-repository --repository-name embedding-lambda-amd64 --region $aws_region --profile marketing
+> aws ecr create-repository --repository-name embedding-multi-qa --region $aws_region --profile sandbox
+
 ### build and tag the docker image
-
-> docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t all-minilm-l6-v2-arm64 .
-
-
-use ECR repositoryUri to tag the image
-> docker tag all-minilm-l6-v2-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-arm64
+> docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t mutli-qa-arm64 .
+> docker tag mutli-qa-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-multi-qa
 
 ### push the image to ECR
-> aws ecr get-login-password --region $aws_region \
+> aws ecr get-login-password --region $aws_region --profile sandbox \
 | docker login \
     --username AWS \
     --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
 Login Succeeded
-> aws ecr get-login-password --region $aws_region --profile marketing\
-| docker login \
-    --username AWS \
-    --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64
 
-> docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
-> docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64 
+> docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-multi-qa
 ### deploy the serverless function
 set the image reference in serverless.yml config.
 
 Deploy to AWS
 ```
-$ serverless deploy --aws-profile dgraph
+$ serverless deploy --aws-profile sandbox
 ```
 
 If we build an arm64 docker image (on Mac without forcing the platform), then the lambda must be configured with
@@ -110,13 +102,15 @@ curl --request POST \
 
 ### Local development
 
+> docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t mutli-qa-arm64 
 
 
-docker run -d --name embedding -p 8180:8080  -v ./:/var/task/   all-minilm-l6-v2-arm64
+
+docker run -d --name mutli-qa-arm64 -p 8180:8080  -v ./:/var/task/   mutli-qa-arm64
 
 Runing locally a specific handler:
 
-> docker run -d --name embedding -p 8180:8080  -v ./handler.py:/var/task/handler.py   python-lambda "handler.embedding"
+> docker run -d --name mutli-qa-arm64 -p 8180:8080  -v ./handler.py:/var/task/handler.py   mutli-qa-arm64 "handler.embedding"
 
 ```
 curl --request POST \
