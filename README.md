@@ -9,3 +9,6 @@ See https://realpython.com/intro-to-pyenv/
 > pyenv versions
 > pyenv activate <>
 
+
+source ~/.bash_profile
+pyenv activate models38

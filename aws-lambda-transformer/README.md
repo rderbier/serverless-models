@@ -61,13 +61,13 @@ export aws_account_id=<account_id>
 > aws ecr create-repository --repository-name embedding-lambda --region $aws_region --profile dgraph
 > aws ecr create-repository --repository-name embedding-lambda-amd64 --region $aws_region --profile marketing
 ### build and tag the docker image
-> docker build -t python-lambda .
-> docker build  --platform linux/amd64  --no-cache -f amd64-dockerfile -t python-aws-amd64 .
-> docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t python-aws-arm64 .
+
+> docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t all-minilm-l6-v2-arm64 .
+
+
 use ECR repositoryUri to tag the image
-> docker tag python-lambda $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
-> docker tag python-aws-amd64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-amd64
-> docker tag python-aws-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-arm64
+> docker tag all-minilm-l6-v2-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda-arm64
+
 ### push the image to ECR
 > aws ecr get-login-password --region $aws_region \
 | docker login \
@@ -110,14 +110,9 @@ curl --request POST \
 
 ### Local development
 
-> docker build -t embedding-lambda .
 
-Build for a specific platform
 
-> docker build --platform linux/amd64 -t embedding-lambda .
-> docker build --platform linux/arm64 -t embedding-lambda .
-
-docker run -d --name embedding -p 8180:8080  -v ./:/var/task/   python-lambda
+docker run -d --name embedding -p 8180:8080  -v ./:/var/task/   all-minilm-l6-v2-arm64
 
 Runing locally a specific handler:
 

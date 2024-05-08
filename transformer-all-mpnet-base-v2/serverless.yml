@@ -1,0 +1,32 @@
+service: all-mpnet-base-v2
+	
+plugins:
+  - serverless-plugin-log-retention
+
+provider:
+  name: aws # provider
+  region: us-east-1 # aws region
+  memorySize: 3008 # optional, in MB, default is 1024
+  timeout: 30 # optional, in seconds, default is 6
+  architecture: arm64
+  custom: 
+    stage: ${opt:stage, 'dev'}
+  environment:
+    TRANSFORMERS_CACHE: /var/task
+  apiGateway:
+    apiKeys:
+      - all-mpnet-base-v2-apikey
+
+functions:
+  sentence-encoding:
+    image: 436061841671.dkr.ecr.us-east-1.amazonaws.com/embedding-all-mpnet-base-v2:latest
+    logRetentionInDays: 1
+   
+    events:
+      - http:
+          path: embedding # http path
+          method: post # http method
+          private: true
+      - schedule:
+          name: all-mpnet-base-v2-warm
+          rate: rate(5 minutes)

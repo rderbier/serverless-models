@@ -21,11 +21,24 @@ The service accepts a map of IDs and sentences
     "0x02":"other sentence
 }
 ```
+or K-serve like signature
+```json
+{
+    "instances":["some text","other sentence"]
+}
+```
 and returns a map of IDs and vectors.
 ```json
 {
     "0x01":"[-0.010852468200027943, -0.016728922724723816, ...]",
     ...
+}
+```
+of predictions if the input is in K-serve like signature
+```json
+{
+    "predictions":[[-0.010852468200027943, -0.016728922724723816, ...]],
+    
 }
 ```
 
@@ -42,37 +55,54 @@ Some steps are still manual in this version but can be automated.
 Following https://www.philschmid.de/serverless-bert-with-huggingface-aws-lambda-docker
 
 ### Downloads models
-use a python environment (could use pyenv) with
+use a python environment with
 python 3.8
 transformers==4.33.1
 sentence-transformers==2.2.2
 pytorch==1.13
 run the script ./function/getmodels.py
 
+I used pyenv
+> source ~/.bash_profile
+> pyenv activate models38
+> python ./scripts/getmodels.py
+
+
 verify that the models are created in model folder and are in the format of pytorch_model.bin
 
-### Set your AWS CLI
+### Set your AWS CLI 
 have aws cli installed.
-Use secrets from AWS or use a profile in ~/.aws/config
+Use secrets from AWS or use a profile in ~/.aws/config 
 
 ### Create ECR repository
+```
 export aws_region=us-east-1
 export aws_account_id=<account_id>
 
-> aws ecr create-repository --repository-name embedding-multi-qa --region $aws_region --profile sandbox
+export MODEL_NAME="all-minilm-l6-v2"
 
+aws sso login --profile sandbox
+
+aws ecr create-repository --repository-name embedding-${MODEL_NAME} --region $aws_region --profile sandbox
+```
 ### build and tag the docker image
+```
+docker build  --platform linux/arm64  --no-cache -f arm64-dockerfile -t ${MODEL_NAME}-arm64 .
 
-> docker tag mutli-qa-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-multi-qa
+docker tag ${MODEL_NAME}-arm64 $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-${MODEL_NAME}
+```
 
 ### push the image to ECR
-> aws ecr get-login-password --region $aws_region --profile sandbox \
+```
+aws ecr get-login-password --region $aws_region --profile sandbox \
 | docker login \
     --username AWS \
-    --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda
+    --password-stdin $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-all-${MODEL_NAME}
 Login Succeeded
 
-> docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-multi-qa
+docker push $aws_account_id.dkr.ecr.us-east-1.amazonaws.com/embedding-${MODEL_NAME}
+```
+
 ### deploy the serverless function
 set the image reference in serverless.yml config.
 
@@ -86,7 +116,7 @@ If we build an arm64 docker image (on Mac without forcing the platform), then th
 else, if we build the docker image for platform linux/amd64, then set
 - architecture: x86_64
 
-_Note_: In current form, after deployment, your API is protected by an API key.
+_Note_: In current form, after deployment, your API is protected by an API key. 
 
 For production deployments, you might want to configure an authorizer.
 
@@ -94,7 +124,7 @@ For production deployments, you might want to configure an authorizer.
 ```
 curl --request POST \
 
---url https://<>.execute-api.us-east-1.amazonaws.com/dev/multi-qa \
+--url https://<>.execute-api.us-east-1.amazonaws.com/dev/embedding \
 --header 'Content-Type: application/json' --header 'x-api-key: <apikey>' \
 --data '{"id":"some sample text"}'
 ```
@@ -102,18 +132,13 @@ curl --request POST \
 
 ### Local development
 
-> docker build -t embedding-lambda .
 
-Build for a specific platform
 
-> docker build --platform linux/amd64 -t embedding-lambda .
-> docker build --platform linux/arm64 -t embedding-lambda .
-
-docker run -d --name embedding -p 8180:8080  -v ./:/var/task/   python-lambda
+docker run -d --name all-mpnet-base-v2-arm64 -p 8180:8080  -v ./:/var/task/   all-mpnet-base-v2-arm64
 
 Runing locally a specific handler:
 
-> docker run -d --name embedding -p 8180:8080  -v ./handler.py:/var/task/handler.py   python-lambda "handler.embedding"
+> docker run -d --name all-mpnet-base-v2-arm64 -p 8180:8080  -v ./handler.py:/var/task/handler.py   all-mpnet-base-v2-arm64 "handler.embedding"
 
 ```
 curl --request POST \
@@ -158,7 +183,7 @@ with requirements
     pybars3
 -> not working
 
-
+    
 What is WORKING deployed?
 
     dev-python-embedding
