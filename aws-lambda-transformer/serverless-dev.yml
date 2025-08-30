@@ -1,0 +1,42 @@
+service: python-embedding
+	
+plugins:
+  - serverless-plugin-log-retention
+custom: 
+    stage: ${opt:stage, 'dev'}
+provider:
+  name: aws # provider
+  region: us-east-1 # aws region
+  memorySize: 3008 # optional, in MB, default is 1024
+  timeout: 30 # optional, in seconds, default is 6
+  architecture: arm64
+  
+  environment:
+    TRANSFORMERS_CACHE: /var/task
+  apiGateway:
+    apiKeys:
+      - transformer-apikey
+
+functions:
+  sentence-encoding:
+    image: 670738750911.dkr.ecr.us-east-1.amazonaws.com/embedding-lambda:latest
+    logRetentionInDays: 1
+   
+    events:
+      - http:
+          path: embedding # http path
+          method: post # http method
+          private: true
+          cors:
+            origin: '*' # <-- Specify allowed origin
+            headers: # <-- Specify allowed headers
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+   
+      - schedule:
+          name: python-embedding-warm
+          rate: rate(5 minutes)
