@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: transformer-embedding-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: TRANSFORMERS_CACHE
+        value: /tmp/transformers_cache
+    scaling:
+      minInstances: 1
+      maxInstances: 1
