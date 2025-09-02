@@ -10,6 +10,10 @@ services:
     envVars:
       - key: TRANSFORMERS_CACHE
         value: /tmp/transformers_cache
+      - key: API_KEY
+        generateValue: true
+      - key: SHOW_API_KEY_INFO
+        value: "false"
     scaling:
       minInstances: 1
       maxInstances: 1

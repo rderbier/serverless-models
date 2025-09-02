@@ -1,5 +1,7 @@
 import json
 import os
+import secrets
+from functools import wraps
 from flask import Flask, request, jsonify
 from sentence_transformers import SentenceTransformer
 
@@ -7,6 +9,41 @@ from sentence_transformers import SentenceTransformer
 os.environ['TRANSFORMERS_CACHE'] = '/tmp'
 
 app = Flask(__name__)
+
+# API Key configuration
+API_KEY = os.environ.get('API_KEY', None)
+if not API_KEY:
+    # Generate a random API key if not provided
+    API_KEY = secrets.token_urlsafe(32)
+    print(f"⚠️  WARNING: No API_KEY environment variable set!")
+    print(f"🔑 Generated API Key: {API_KEY}")
+    print(f"💡 Set API_KEY environment variable to use a custom key")
+
+def require_api_key(f):
+    """Decorator to require API key authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Get API key from headers
+        provided_key = request.headers.get('X-Api-Key') or request.headers.get('Authorization')
+        
+        # Handle Authorization header with Bearer token
+        if provided_key and provided_key.startswith('Bearer '):
+            provided_key = provided_key[7:]  # Remove 'Bearer ' prefix
+        
+        if not provided_key:
+            return jsonify({
+                "error": "API key required",
+                "message": "Please provide an API key in the 'X-Api-Key' header or 'Authorization: Bearer <key>' header"
+            }), 401
+        
+        if provided_key != API_KEY:
+            return jsonify({
+                "error": "Invalid API key",
+                "message": "The provided API key is invalid"
+            }), 403
+        
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Load the model - will be downloaded on first run or loaded from ./model if available
 try:
@@ -23,7 +60,33 @@ def health_check():
     """Health check endpoint for Render"""
     return jsonify({"status": "healthy", "model": "all-MiniLM-L6-v2"})
 
+@app.route('/api-key-info', methods=['GET'])
+def api_key_info():
+    """Display API key information (for development/setup)"""
+    # Only show this in development or if explicitly enabled
+    show_key = os.environ.get('SHOW_API_KEY_INFO', 'false').lower() == 'true'
+    
+    if show_key:
+        return jsonify({
+            "api_key": API_KEY,
+            "usage": {
+                "header_name": "X-Api-Key",
+                "alternative": "Authorization: Bearer <key>",
+                "example_curl": f"curl -H 'X-Api-Key: {API_KEY}' -X POST ..."
+            }
+        })
+    else:
+        return jsonify({
+            "message": "API key authentication is enabled",
+            "usage": {
+                "header_name": "X-Api-Key",
+                "alternative": "Authorization: Bearer <key>",
+                "note": "Set SHOW_API_KEY_INFO=true environment variable to display the actual key"
+            }
+        })
+
 @app.route('/embedding', methods=['POST'])
+@require_api_key
 def generate_embeddings():
     """
     Generate embeddings for input sentences.
@@ -74,7 +137,7 @@ def generate_embeddings():
 def handle_options():
     """Handle CORS preflight requests"""
     response = jsonify({})
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,X-Api-Key')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,X-Api-Key,Authorization')
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Methods', 'OPTIONS,POST,GET')
     return response
@@ -82,7 +145,7 @@ def handle_options():
 @app.after_request
 def after_request(response):
     """Add CORS headers to all responses"""
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,X-Api-Key')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,X-Api-Key,Authorization')
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Methods', 'OPTIONS,POST,GET')
     return response

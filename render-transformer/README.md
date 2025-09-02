@@ -14,6 +14,7 @@ The API converts text sentences into high-dimensional vector embeddings that can
 
 - **Fast inference**: Optimized for quick embedding generation
 - **Flexible input formats**: Supports both map-based and KServe-compatible formats
+- **API Key Protection**: Secure endpoints with configurable API key authentication
 - **CORS enabled**: Ready for web applications
 - **Health monitoring**: Built-in health check endpoint
 - **Production ready**: Uses Gunicorn WSGI server
@@ -24,7 +25,7 @@ The API converts text sentences into high-dimensional vector embeddings that can
 ```
 GET /health
 ```
-Returns service status and model information.
+Returns service status and model information. **No authentication required.**
 
 **Response:**
 ```json
@@ -34,10 +35,29 @@ Returns service status and model information.
 }
 ```
 
+### API Key Information
+```
+GET /api-key-info
+```
+Returns API key usage information. **No authentication required.**
+
+**Response:**
+```json
+{
+  "message": "API key authentication is enabled",
+  "usage": {
+    "header_name": "X-Api-Key",
+    "alternative": "Authorization: Bearer <key>",
+    "note": "Set SHOW_API_KEY_INFO=true environment variable to display the actual key"
+  }
+}
+```
+
 ### Generate Embeddings
 ```
 POST /embedding
 ```
+**🔐 Requires API Key Authentication**
 
 #### Input Format 1: Map-based (ID to text mapping)
 ```json
@@ -75,6 +95,86 @@ POST /embedding
 }
 ```
 
+## 🔐 Authentication
+
+The API uses API key authentication to protect the embedding endpoint. The health check and API key info endpoints are public.
+
+### API Key Headers
+
+You can provide the API key using either header format:
+
+1. **X-Api-Key header** (recommended):
+   ```bash
+   curl -H "X-Api-Key: your-api-key-here" -X POST ...
+   ```
+
+2. **Authorization Bearer header**:
+   ```bash
+   curl -H "Authorization: Bearer your-api-key-here" -X POST ...
+   ```
+
+### Getting Your API Key
+
+#### Local Development
+When running locally, the API key is displayed in the console output:
+```bash
+python app.py
+# Output:
+# ⚠️  WARNING: No API_KEY environment variable set!
+# 🔑 Generated API Key: abc123def456...
+```
+
+Or set the `SHOW_API_KEY_INFO=true` environment variable and visit `/api-key-info`:
+```bash
+export SHOW_API_KEY_INFO=true
+python app.py
+# Then visit: http://localhost:5000/api-key-info
+```
+
+#### Production (Render)
+1. **Via Render Dashboard**: Check your service's environment variables
+2. **Via API endpoint**: Set `SHOW_API_KEY_INFO=true` in Render environment variables, then visit `https://your-app.onrender.com/api-key-info`
+3. **Via logs**: Check your Render service logs for the generated API key
+
+### Authentication Examples
+
+```bash
+# Using X-Api-Key header
+curl -X POST http://localhost:5000/embedding \
+  -H "Content-Type: application/json" \
+  -H "X-Api-Key: your-api-key-here" \
+  -d '{"text1": "Hello world"}'
+
+# Using Authorization Bearer header
+curl -X POST http://localhost:5000/embedding \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-api-key-here" \
+  -d '{"text1": "Hello world"}'
+
+# Without API key (will fail with 401)
+curl -X POST http://localhost:5000/embedding \
+  -H "Content-Type: application/json" \
+  -d '{"text1": "Hello world"}'
+```
+
+### Error Responses
+
+**Missing API Key (401 Unauthorized):**
+```json
+{
+  "error": "API key required",
+  "message": "Please provide an API key in the 'X-Api-Key' header or 'Authorization: Bearer <key>' header"
+}
+```
+
+**Invalid API Key (403 Forbidden):**
+```json
+{
+  "error": "Invalid API key",
+  "message": "The provided API key is invalid"
+}
+```
+
 ## Local Development
 
 ### Prerequisites
@@ -101,19 +201,32 @@ POST /embedding
 The API will be available at `http://localhost:5000`
 
 ### Testing Locally
+
+First, get your API key by checking the console output when you start the server, or visit `/api-key-info`.
+
 ```bash
-# Health check
+# Health check (no API key required)
 curl http://localhost:5000/health
 
-# Generate embeddings (map format)
+# Get API key info
+curl http://localhost:5000/api-key-info
+
+# Generate embeddings (map format) - with API key
 curl -X POST http://localhost:5000/embedding \
   -H "Content-Type: application/json" \
+  -H "X-Api-Key: YOUR_API_KEY_HERE" \
   -d '{"text1": "Hello world", "text2": "How are you?"}'
 
-# Generate embeddings (KServe format)
+# Generate embeddings (KServe format) - with API key
 curl -X POST http://localhost:5000/embedding \
   -H "Content-Type: application/json" \
+  -H "X-Api-Key: YOUR_API_KEY_HERE" \
   -d '{"instances": ["Hello world", "How are you?"]}'
+
+# Test API key protection (should fail with 401)
+curl -X POST http://localhost:5000/embedding \
+  -H "Content-Type: application/json" \
+  -d '{"text1": "This should fail"}'
 ```
 
 ## Deployment on Render
@@ -142,10 +255,18 @@ CMD ["gunicorn", "--bind", "0.0.0.0:10000", "--workers", "1", "--timeout", "120"
 ```
 
 ### Environment Variables
-No special environment variables are required. The app will:
-- Use `PORT` environment variable (automatically set by Render)
-- Download the model on first startup if not pre-installed
-- Cache models in `/tmp/transformers_cache`
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `API_KEY` | API key for authentication | Auto-generated | Recommended |
+| `SHOW_API_KEY_INFO` | Show API key in `/api-key-info` endpoint | `false` | No |
+| `PORT` | Server port | `5000` (local), `10000` (Render) | No |
+| `TRANSFORMERS_CACHE` | Cache directory for models | `/tmp` | No |
+
+**Important Notes:**
+- If `API_KEY` is not set, a random key will be generated and displayed in logs
+- Set `SHOW_API_KEY_INFO=true` only for development/setup purposes
+- The generated API key will be different on each deployment restart if not explicitly set
 
 ### Performance Considerations
 - **Memory**: The service requires ~2GB RAM for the model
