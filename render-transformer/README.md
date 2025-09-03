@@ -254,6 +254,30 @@ EXPOSE 10000
 CMD ["gunicorn", "--bind", "0.0.0.0:10000", "--workers", "1", "--timeout", "120", "app:app"]
 ```
 
+### Using render.yaml (Infrastructure as Code)
+
+There's a `render.yaml` file at the repository root that defines the deployment configuration:
+
+```yaml
+services:
+  - type: web
+    name: transformer-embedding-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    rootDir: render-transformer
+    healthCheckPath: /health
+    envVars:
+      - key: API_KEY
+        value: "your-custom-api-key-here"
+```
+
+To use this:
+1. **Push your code to GitHub** (including the root-level `render.yaml`)
+2. **Create a Blueprint** in Render dashboard
+3. **Connect your repository** 
+4. **Render will automatically detect** the `render.yaml` configuration
+5. **Deploy** - all settings will be applied automatically
+
 ### Environment Variables
 
 | Variable | Description | Default | Required |

@@ -1,8 +1,9 @@
 services:
   - type: web
-    name: transformer-embedding-api
+    name: embeddings
     runtime: docker
     dockerfilePath: ./Dockerfile
+    rootDir: render-transformer
     plan: starter
     region: oregon
     branch: main
@@ -11,9 +12,9 @@ services:
       - key: TRANSFORMERS_CACHE
         value: /tmp/transformers_cache
       - key: API_KEY
-        generateValue: true
+        value: "your-custom-api-key-here-change-this-to-something-secure"
       - key: SHOW_API_KEY_INFO
-        value: "false"
+        value: "true"
     scaling:
       minInstances: 1
       maxInstances: 1
