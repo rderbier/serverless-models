@@ -178,7 +178,7 @@ curl -X POST http://localhost:5000/embedding \
 ## Local Development
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.9+
 - pip
 
 ### Setup
@@ -245,7 +245,7 @@ curl -X POST http://localhost:5000/embedding \
 The included Dockerfile is optimized for Render deployment:
 
 ```dockerfile
-FROM python:3.8-slim
+FROM python:3.9-slim
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -281,6 +281,8 @@ CMD ["gunicorn", "--bind", "0.0.0.0:10000", "--workers", "1", "--timeout", "120"
 - **Max Sequence Length**: 256 tokens
 - **Use Cases**: General purpose sentence embeddings
 - **Performance**: Good balance of speed and quality
+- **Framework**: PyTorch 2.2.0 (improved performance and memory efficiency)
+- **Python**: 3.9+ (modern Python features and better performance)
 
 ## Error Handling
 
@@ -309,7 +311,15 @@ This API maintains compatibility with the original AWS Lambda function:
 - **Protocol**: HTTP REST API instead of Lambda event
 - **Deployment**: Render instead of AWS
 - **Scaling**: Single instance instead of auto-scaling
-- **Authentication**: No API key required (can be added if needed)
+- **Authentication**: API key protection included
+- **Framework**: Updated to PyTorch 2.2.0 and Python 3.9+ for better performance
+
+### Upgrade Benefits
+- **🚀 Performance**: PyTorch 2.x offers significant performance improvements
+- **💾 Memory**: Better memory management and efficiency
+- **🔧 Compatibility**: Python 3.9+ provides better type hints and language features
+- **🛡️ Security**: Built-in API key authentication
+- **📦 Dependencies**: Updated to latest stable versions for security and performance
 
 ## Troubleshooting
 

@@ -1,6 +1,6 @@
-# Run this script with sentence_transformers 2.2.2 and torch 1.13
-# torch 2 is producing a different model format
-# the output must contain pytorch_model.bin 
+# Run this script with sentence_transformers 2.5.1 and torch 2.2.0
+# Updated for PyTorch 2.x compatibility
+# The output format may vary between PyTorch versions 
 
 import os
 from sentence_transformers import SentenceTransformer
@@ -23,10 +23,16 @@ def download_model():
     model_files = os.listdir(model_path)
     print(f"Model files saved: {model_files}")
     
+    # PyTorch 2.x may use different model file formats
     if 'pytorch_model.bin' in model_files:
         print("✓ Model saved successfully with pytorch_model.bin format")
+    elif 'model.safetensors' in model_files:
+        print("✓ Model saved successfully with safetensors format (PyTorch 2.x)")
+    elif any(f.endswith('.bin') or f.endswith('.safetensors') for f in model_files):
+        print("✓ Model saved successfully with PyTorch format")
     else:
-        print("⚠ Warning: pytorch_model.bin not found in saved model")
+        print("⚠ Warning: No recognizable model files found")
+        print("  This may still work if the model uses a different format")
     
     print("Model download and save completed!")
 
